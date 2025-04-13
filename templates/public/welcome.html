@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome - File Access System</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .welcome-container {
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-logo {
+            height: 50px;
+            border-radius: 8px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .user-info {
+            text-align: right;
+        }
+        .email-info {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        .welcome-text {
+            font-size: 2em;
+            font-weight: 600;
+            color: #2d3436;
+            margin: 30px 0;
+        }
+        .upload-section {
+            text-align: center;
+            margin: 40px 0;
+            padding: 40px;
+            border: 2px dashed #dfe6e9;
+            border-radius: 12px;
+            background-color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-section:hover {
+            border-color: #0984e3;
+            background-color: #f8f9fa;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #0984e3;
+            margin-bottom: 20px;
+        }
+        .upload-text {
+            color: #2d3436;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        .upload-subtext {
+            color: #636e72;
+            font-size: 0.9em;
+        }
+        .files-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .files-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #2d3436;
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+        .file-card {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f1f2f6;
+            transition: all 0.2s ease;
+        }
+        .file-card:last-child {
+            border-bottom: none;
+        }
+        .file-card:hover {
+            background-color: #f8f9fa;
+        }
+        .file-icon {
+            font-size: 24px;
+            color: #0984e3;
+            margin-right: 15px;
+        }
+        .file-info {
+            flex-grow: 1;
+        }
+        .file-name {
+            font-weight: 500;
+            color: #2d3436;
+            margin-bottom: 4px;
+        }
+        .file-meta {
+            font-size: 0.85em;
+            color: #636e72;
+        }
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            color: #636e72;
+            transition: all 0.2s ease;
+        }
+        .action-btn:hover {
+            background-color: #f1f2f6;
+            color: #0984e3;
+        }
+        .action-btn.delete:hover {
+            color: #d63031;
+        }
+        .no-files {
+            text-align: center;
+            padding: 40px 20px;
+            color: #636e72;
+        }
+        .no-files-icon {
+            font-size: 48px;
+            color: #b2bec3;
+            margin-bottom: 20px;
+        }
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .btn-primary {
+            background-color: #0984e3;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .btn-primary:hover {
+            background-color: #0873c5;
+        }
+        .btn-outline-danger {
+            border-color: #d63031;
+            color: #d63031;
+        }
+        .btn-outline-danger:hover {
+            background-color: #d63031;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <div class="header">
+            <div class="header-left">
+                <img src="images/AIclub_logo.jfif" alt="Logo" class="header-logo">
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="email-info" id="userEmail"></div>
+                </div>
+                <button onclick="logout()" class="btn btn-outline-danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="welcome-text">
+            Welcome, <span id="userName"></span> 👋
+        </div>
+
+        <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+            <span class="material-icons upload-icon">cloud_upload</span>
+            <div class="upload-text">Click to upload or drag and drop</div>
+            <div class="upload-subtext">PDF, Microsoft Word, Excel, PowerPoint, or image files</div>
+            <form id="uploadForm" style="display: none;">
+                <input type="file" id="fileInput" class="form-control" required>
+            </form>
+        </div>
+
+        <div class="loader">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div class="files-container" id="filesContainer">
+            <h2 class="files-title">Your Files</h2>
+            <!-- Files will be dynamically loaded here -->
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userName = new URLSearchParams(window.location.search).get('name');
+            const userEmail = localStorage.getItem('userEmail');
+            
+            if (userName) {
+                document.getElementById('userName').textContent = decodeURIComponent(userName);
+            }
+            if (userEmail) {
+                document.getElementById('userEmail').textContent = userEmail;
+            }
+
+            loadFiles();
+
+            document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/api/files/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert('File uploaded successfully!');
+                        loadFiles();
+                        fileInput.value = '';
+                    } else {
+                        if (response.status === 401) {
+                            handleAuthError();
+                        } else {
+                            alert(result.message || 'Upload failed');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('Failed to upload file');
+                }
+            });
+        });
+
+        async function loadFiles() {
+            const loader = document.querySelector('.loader');
+            const filesContainer = document.getElementById('filesContainer');
+            
+            loader.style.display = 'block';
+            filesContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/files', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    handleAuthError();
+                    return;
+                }
+
+                const files = await response.json();
+
+                if (files.length === 0) {
+                    filesContainer.innerHTML = `
+                        <div class="no-files">
+                            <span class="material-icons no-files-icon">folder_open</span>
+                            <h3>No Files Yet</h3>
+                            <p>Upload your first file using the form above.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                files.forEach(file => {
+                    const fileCard = document.createElement('div');
+                    fileCard.className = 'file-card';
+                    fileCard.innerHTML = `
+                        <span class="material-icons file-icon">description</span>
+                        <div class="file-info">
+                            <div class="file-name">${file.originalName}</div>
+                            <div class="file-meta">
+                                <span>${formatFileSize(file.size)}</span> • 
+                                <span>${new Date(file.uploadDate).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="action-btn" onclick="downloadFile('${file._id}', '${file.originalName}')" title="Download">
+                                <span class="material-icons">download</span>
+                            </button>
+                            <button class="action-btn delete" onclick="deleteFile('${file._id}')" title="Delete">
+                                <span class="material-icons">delete</span>
+                            </button>
+                        </div>
+                    `;
+                    filesContainer.appendChild(fileCard);
+                });
+            } catch (error) {
+                console.error('Error loading files:', error);
+                filesContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        Failed to load files. Please try again later.
+                    </div>
+                `;
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function downloadFile(fileId, fileName) {
+            try {
+                const response = await fetch(`/api/files/download/${fileName}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    handleAuthError();
+                    return;
+                }
+
+                if (!response.ok) throw new Error('Download failed');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Failed to download file');
+            }
+        }
+
+        async function deleteFile(fileId) {
+            if (!confirm('Are you sure you want to delete this file?')) return;
+            
+            try {
+                const response = await fetch(`/api/files/${fileId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 401) {
+                    handleAuthError();
+                    return;
+                }
+
+                if (response.ok) {
+                    loadFiles();
+                } else {
+                    alert('Failed to delete file');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Failed to delete file');
+            }
+        }
+
+        function handleAuthError() {
+            alert('Your session has expired. Please login again.');
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
+
+        function logout() {
+            fetch('/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).finally(() => {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        const uploadSection = document.querySelector('.upload-section');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.style.borderColor = '#0984e3';
+            uploadSection.style.backgroundColor = '#f8f9fa';
+        });
+
+        uploadSection.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadSection.style.borderColor = '#dfe6e9';
+            uploadSection.style.backgroundColor = 'white';
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.style.borderColor = '#dfe6e9';
+            uploadSection.style.backgroundColor = 'white';
+            
+            const fileInput = document.getElementById('fileInput');
+            fileInput.files = e.dataTransfer.files;
+            
+            if (fileInput.files.length > 0) {
+                document.getElementById('uploadForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

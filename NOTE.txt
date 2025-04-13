@@ -1,0 +1,8 @@
+NOTE
+
+if we get "Please install face_recognition_models before using face_recognition"
+
+
+Delete the venv local folder -> (cmd)recreate the venv : python -m venv venv -> Activate it -> venv\Scripts\activate -> pip install -r requirements.txt -> pip install setuptools (✅) *solves the issue (gamechanger)
+
+We also ,ight get dlib error -> then install cmake and add it to PATH

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Verification</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .verification-container {
+            max-width: 800px;
+            width: 90%;
+            padding: 40px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            font-weight: 600;
+            color: #2d3436;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #636e72;
+            font-size: 1.1em;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .scanning-line {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #0984e3, transparent);
+            animation: scan 2s linear infinite;
+            z-index: 2;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+            100% {
+                top: 100%;
+            }
+        }
+
+        .scanning-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(9, 132, 227, 0.1);
+            z-index: 1;
+        }
+
+
+        #video {
+            width: 100%;
+            border-radius: 12px;
+            background-color: #2d3436;
+        }
+
+        .capture-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background-color: #0984e3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+        }
+
+        .capture-btn:hover {
+            background-color: #0873c5;
+            transform: translateY(-1px);
+        }
+
+        .capture-btn:active {
+            transform: translateY(0);
+        }
+
+        .capture-btn i {
+            font-size: 1.2em;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .status-message {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .status-message.success {
+            background-color: #00b894;
+            color: white;
+        }
+
+        .status-message.error {
+            background-color: #d63031;
+            color: white;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loader .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            color: #0984e3;
+        }
+
+        @media (max-width: 768px) {
+            .verification-container {
+                padding: 20px;
+                width: 95%;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .header p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="header">
+            <h1>Face Verification</h1>
+            <p>Please position your face in front of the camera</p>
+        </div>
+
+        <div class="video-container">
+            <video id="video" playsinline autoplay></video>
+            <canvas id="canvas"></canvas>
+            <div class="scanning-line"></div>
+            <div class="scanning-overlay"></div>
+
+        </div>
+
+        <div class="controls">
+            <button id="capture" class="capture-btn" disabled>
+                <i class="fas fa-camera"></i>
+                Capture Image
+            </button>
+        </div>
+
+        <div class="loader">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Verifying...</span>
+            </div>
+            <p class="mt-2">Verifying your face...</p>
+        </div>
+
+        <div id="status" style="display: none;" class="status-message"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let captureButton = document.getElementById('capture');
+        let context = canvas.getContext('2d');
+        let scanningLine = document.querySelector('.scanning-line');
+        let scanningOverlay = document.querySelector('.scanning-overlay');
+
+        function showToast(message, isError = false) {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: isError ? "#d63031" : "#00b894",
+                stopOnFocus: true,
+            }).showToast();
+        }
+
+        // Initialize the video stream when the page loads
+        window.addEventListener('load', initializeCamera);
+
+        async function initializeCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640,
+                        height: 480,
+                        facingMode: 'user'
+                    } 
+                });
+                video.srcObject = stream;
+                showToast('Camera initialized successfully');
+                captureButton.disabled = false;
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                showToast('Failed to access camera. Please ensure camera permissions are granted.', true);
+                captureButton.disabled = true;
+            }
+        }
+
+        function startScanAnimation() {
+            scanningLine.style.display = 'block';
+            scanningOverlay.style.display = 'block';
+        }
+
+        function stopScanAnimation() {
+            scanningLine.style.display = 'none';
+            scanningOverlay.style.display = 'none';
+        }
+
+        captureButton.addEventListener('click', async () => {
+            if (!video.srcObject) {
+                showToast('Camera not initialized. Please refresh and grant camera permissions.', true);
+                return;
+            }
+
+            startScanAnimation();
+
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Capture frame from video
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            try {
+                showLoader(true);
+                
+                // Convert canvas to base64
+                const base64Image = canvas.toDataURL('image/jpeg');
+
+                // Get JWT token from localStorage
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    showToast('Not authenticated. Please log in first.', true);
+                    stopScanAnimation();
+                    return;
+                }
+
+                // Send to server
+                const response = await fetch('http://localhost:5050/api/verify-face', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        image: base64Image
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showToast(`Face verification successful! Welcome, ${result.name}`);
+                    // Redirect to welcome page after successful verification
+                    setTimeout(() => {
+                        window.location.href = `/welcome.html?name=${encodeURIComponent(result.name)}`;
+                    }, 2000);
+                } else {
+                    showToast(result.message || 'Face verification failed', true);
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                showToast('An error occurred during verification', true);
+            } finally {
+                showLoader(false);
+                stopScanAnimation();
+            }
+        });
+
+        function showLoader(show = true) {
+            const loader = document.querySelector('.loader');
+            const captureBtn = document.getElementById('capture');
+            if (loader && captureBtn) {
+                loader.style.display = show ? 'block' : 'none';
+                captureBtn.style.display = show ? 'none' : 'inline-flex';
+            }
+        }
+    </script>
+</body>
+</html>

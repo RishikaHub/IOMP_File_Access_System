@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - File Access System</title>
+    <link href="css/auth.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="background-animation" id="background-animation"></div>
+    
+    <div class="auth-container">
+        <div class="header-container">
+            <img src="images/AIclub_logo.jfif" alt="Logo" class="header-logo">
+            <h1 class="header-title">File Access System</h1>
+        </div>
+
+        <form id="loginForm">
+            <h3 class="text-center">Welcome Back</h3>
+            <div class="form-group">
+                <label><i class="material-icons">email</i> Email</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label><i class="material-icons">lock</i> Password</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <span class="loader" id="loginLoader"></span>
+                <span class="btn-text">Login</span>
+            </button>
+            <div class="auth-toggle">
+                <p>Don't have an account? <a href="#" id="showRegister">Register</a></p>
+            </div>
+        </form>
+
+        <form id="registerForm" style="display: none;">
+            <h3 class="text-center">Create Account</h3>
+            <div class="form-group">
+                <label><i class="material-icons">email</i> Email</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label><i class="material-icons">lock</i> Password</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label><i class="material-icons">lock_outline</i> Confirm Password</label>
+                <input type="password" name="confirmPassword" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <span class="loader" id="registerLoader"></span>
+                <span class="btn-text">Register</span>
+            </button>
+            <div class="auth-toggle">
+                <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Create animated background bubbles
+        const backgroundAnimation = document.getElementById('background-animation');
+        function createBubble() {
+            const span = document.createElement('span');
+            const size = Math.random() * 60 + 20;
+            span.style.width = `${size}px`;
+            span.style.height = `${size}px`;
+            span.style.left = Math.random() * innerWidth + 'px';
+            span.style.bottom = '-100px';
+            backgroundAnimation.appendChild(span);
+            setTimeout(() => span.remove(), 8000);
+        }
+        setInterval(createBubble, 500);
+
+        // Form handling
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const showRegister = document.getElementById('showRegister');
+        const showLogin = document.getElementById('showLogin');
+        const loginLoader = document.getElementById('loginLoader');
+        const registerLoader = document.getElementById('registerLoader');
+
+        showRegister.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+        });
+
+        showLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+        });
+
+        function showLoader(loader) {
+            loader.style.display = 'inline-block';
+            loader.parentElement.querySelector('.btn-text').style.display = 'none';
+        }
+
+        function hideLoader(loader) {
+            loader.style.display = 'none';
+            loader.parentElement.querySelector('.btn-text').style.display = 'inline';
+        }
+
+        // Existing form submission handlers
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoader(loginLoader);
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch('http://localhost:8080/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        email: formData.get('email'),
+                        password: formData.get('password')
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('userEmail', data.email);
+                    window.location.href = '/verify-face.html';
+                } else {
+                    alert(data.message || 'Login failed');
+                }
+            } catch (error) {
+                alert('An error occurred during login');
+                console.error('Login error:', error);
+            } finally {
+                hideLoader(loginLoader);
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            if (formData.get('password') !== formData.get('confirmPassword')) {
+                alert('Passwords do not match');
+                return;
+            }
+            showLoader(registerLoader);
+            try {
+                const response = await fetch('http://localhost:8080/auth/signup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        email: formData.get('email'),
+                        password: formData.get('password')
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Registration successful! Please login.');
+                    showLogin.click();
+                } else {
+                    alert(data.message || 'Registration failed');
+                }
+            } catch (error) {
+                alert('An error occurred during registration');
+                console.error('Registration error:', error);
+            } finally {
+                hideLoader(registerLoader);
+            }
+        });
+    </script>
+</body>
+</html>

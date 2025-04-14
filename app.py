@@ -91,7 +91,14 @@ def verify_face():
             image_bytes = base64.b64decode(image_data)
         except Exception as e:
             logger.error(f"Error processing image data: {str(e)}")
-            return jsonify({"status": "error", "message": "Invalid image data"}), 400
+            # Send email notification for invalid image data
+            face_system.send_file_access_notification(
+                None,
+                user_email,
+                "Unknown",
+                message="Failed verification attempt - Invalid image data"
+            )
+            return jsonify({"status": "error", "message": "Error processing image. Please try again."}), 400
         
         # Save the captured image temporarily
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -104,22 +111,42 @@ def verify_face():
             # Convert image to numpy array for face recognition
             image_np = cv2.imread(temp_image_path)
             if image_np is None:
-                raise ValueError("Could not read image file")
+                # Send email notification for failed image reading
+                face_system.send_file_access_notification(
+                    temp_image_path,
+                    user_email,
+                    "Unknown",
+                    message="Failed verification attempt - Could not process image"
+                )
+                return jsonify({"status": "error", "message": "Error processing image. Please try again."}), 400
             
             # Use the new verify_face method
             name, error = face_system.verify_face(image_np)
             
             if error:
                 logger.warning(f"Face verification failed: {error}")
-                if error == "No face detected":
-                    return jsonify({"status": "error", "message": "No face detected"}), 400
-                return jsonify({"status": "error", "message": error}), 400
+                # Send email notification for failed verification
+                face_system.send_file_access_notification(
+                    temp_image_path,
+                    user_email,
+                    "Unknown",
+                    message=f"Failed verification attempt - {error}"
+                )
+                
+                # Different messages for different error cases
+                if "Access denied" in error:  # For spoof detection
+                    return jsonify({"status": "error", "message": error}), 400
+                elif error == "No face detected":
+                    return jsonify({"status": "error", "message": "No face detected. Please ensure your face is visible in the camera."}), 400
+                else:
+                    return jsonify({"status": "error", "message": "You don't have access to system. Mail has been sent to your email."}), 400
             
             # Send email notification about successful verification
             face_system.send_file_access_notification(
                 temp_image_path,
                 user_email,
-                name
+                name,
+                message="Successful verification"
             )
             
             return jsonify({

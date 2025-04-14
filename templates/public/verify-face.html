@@ -180,6 +180,16 @@
                 font-size: 1em;
             }
         }
+
+        /* Custom toast styles for spoof detection */
+        .toastify.toast-spoof {
+            background: linear-gradient(135deg, #8b31d7, #6524a9) !important;
+            font-size: 16px !important;
+            line-height: 1.5 !important;
+            padding: 16px !important;
+            border-radius: 8px !important;
+            white-space: pre-line !important;
+        }
     </style>
 </head>
 <body>
@@ -223,13 +233,33 @@
         let scanningLine = document.querySelector('.scanning-line');
         let scanningOverlay = document.querySelector('.scanning-overlay');
 
-        function showToast(message, isError = false) {
+        function showToast(message, type = 'success') {
+            let backgroundColor;
+            let duration = 3000;
+            let className = '';
+
+            switch(type) {
+                case 'error':
+                    backgroundColor = "#d63031";
+                    break;
+                case 'spoof':
+                    backgroundColor = "#8b31d7";
+                    duration = 8000; // Longer duration for spoof messages
+                    className = 'toast-spoof';
+                    // Format spoof message with line break
+                    message = `Spoof Detected. Not a real person.\nSecurity Mail has been sent`;
+                    break;
+                default:
+                    backgroundColor = "#00b894";
+            }
+
             Toastify({
                 text: message,
-                duration: 3000,
+                duration: duration,
                 gravity: "top",
                 position: "right",
-                backgroundColor: isError ? "#d63031" : "#00b894",
+                backgroundColor: backgroundColor,
+                className: className,
                 stopOnFocus: true,
             }).showToast();
         }
@@ -251,7 +281,7 @@
                 captureButton.disabled = false;
             } catch (err) {
                 console.error('Error accessing camera:', err);
-                showToast('Failed to access camera. Please ensure camera permissions are granted.', true);
+                showToast('Failed to access camera. Please ensure camera permissions are granted.', 'error');
                 captureButton.disabled = true;
             }
         }
@@ -268,34 +298,26 @@
 
         captureButton.addEventListener('click', async () => {
             if (!video.srcObject) {
-                showToast('Camera not initialized. Please refresh and grant camera permissions.', true);
+                showToast('Camera not initialized. Please refresh and grant camera permissions.', 'error');
                 return;
             }
 
             startScanAnimation();
-
-            // Set canvas dimensions to match video
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            
-            // Capture frame from video
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             try {
                 showLoader(true);
-                
-                // Convert canvas to base64
                 const base64Image = canvas.toDataURL('image/jpeg');
-
-                // Get JWT token from localStorage
                 const token = localStorage.getItem('token');
+                
                 if (!token) {
-                    showToast('Not authenticated. Please log in first.', true);
+                    showToast('Not authenticated. Please log in first.', 'error');
                     stopScanAnimation();
                     return;
                 }
 
-                // Send to server
                 const response = await fetch('http://localhost:5050/api/verify-face', {
                     method: 'POST',
                     headers: {
@@ -311,16 +333,20 @@
                 
                 if (response.ok) {
                     showToast(`Face verification successful! Welcome, ${result.name}`);
-                    // Redirect to welcome page after successful verification
                     setTimeout(() => {
                         window.location.href = `/welcome.html?name=${encodeURIComponent(result.name)}`;
                     }, 2000);
                 } else {
-                    showToast(result.message || 'Face verification failed', true);
+                    // Check if the error is related to spoof detection
+                    if (result.message && result.message.toLowerCase().includes('access denied')) {
+                        showToast(result.message, 'spoof');
+                    } else {
+                        showToast(result.message || 'Face verification failed', 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Verification error:', error);
-                showToast('An error occurred during verification', true);
+                showToast('An error occurred during verification', 'error');
             } finally {
                 showLoader(false);
                 stopScanAnimation();
